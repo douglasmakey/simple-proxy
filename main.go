@@ -77,11 +77,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// COPY headers origen to destiny
-	for k, values := range r.Header {
-		for _, v := range values {
-			req.Header.Add(k, v)
-		}
-	}
+	req.Header = r.Header.Clone()
 
 	resp, err := defaultHTTPClient.Do(req)
 	if err != nil {
@@ -100,13 +96,17 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	// COPY headers destiny to origen
-	for k, values := range resp.Header {
-		for _, v := range values {
-			w.Header().Add(k, v)
-		}
-	}
+	copyHeaders(w.Header(), resp.Header)
 
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
 	return
+}
+
+func copyHeaders(dst, src http.Header) {
+	for k, vv := range src {
+		for _, v := range vv {
+			dst.Add(k, v)
+		}
+	}
 }
